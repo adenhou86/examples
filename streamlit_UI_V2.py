@@ -1,157 +1,99 @@
-import streamlit as st
-import pandas as pd
-import io
-import json
+import PyPDF2
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
-# Set Streamlit page layout for wide display
-st.set_page_config(page_title="Financial Data Dashboard", layout="wide")
+# Define the reference text for comparison
+reference_text = """
+Consolidated Statements of Cash Flows (Unaudited)
 
-# Load document information from JSON file
-try:
-    with open('doc_info.json', 'r') as f:
-        doc_info = json.load(f)
-except FileNotFoundError:
-    st.error("doc_info.json file not found. Please ensure the file exists in the same directory.")
-    st.stop()
+Operating Activities
+Net income
+Adjustments to reconcile net income to net cash used in operating activities:
+Provision for credit losses
+Depreciation and amortization
+Deferred tax (benefit)/expense
+Bargain purchase gain associated with the First Republic acquisition
+Other
+Originations and purchases of loans held-for-sale
+Proceeds from sales, securitizations, and paydowns of loans held-for-sale
+Net change in:
+- Trading assets
+- Securities borrowed
+- Accrued interest and accounts receivable
+- Other assets
+- Trading liabilities
+- Accounts payable and other liabilities
+Other operating adjustments
+Net cash (used in) operating activities
+Investing Activities
+Net change in:
+- Federal funds sold and securities purchased under resale agreements
+Held-to-maturity securities:
+- Proceeds from paydowns and maturities
+- Purchases
+Available-for-sale securities:
+- Proceeds from paydowns and maturities
+- Proceeds from sales
+- Purchases
+Proceeds from sales and securitizations of loans held-for-investment
+Other changes in loans, net
+All other investing activities, net
+Net cash provided by/(used in) investing activities
+Financing Activities
+Net change in:
+- Deposits
+- Federal funds purchased and securities loaned or sold under repurchase agreements
+- Short-term borrowings
+- Beneficial interests issued by consolidated VIEs
+Proceeds from long-term borrowings
+Payments of long-term borrowings
+Proceeds from issuance of preferred stock
+Treasury stock repurchased
+Dividends paid
+All other financing activities, net
+Net cash provided by financing activities
+Effect of exchange rate changes on cash and due from banks and deposits with banks
+Net decrease in cash and due from banks and deposits with banks
+Cash and due from banks and deposits with banks at the beginning of the period
+Cash and due from banks and deposits with banks at the end of the period
+Cash interest paid
+Cash income taxes paid, net
+"""
 
-# Function to format date string
-def format_date_str(date_str):
-    # Convert '2024-04-30' to '2024-04'
-    return date_str[:7]
+# Function to extract text from a PDF file
+def extract_text_from_pdf(pdf_path):
+    pdf_reader = PyPDF2.PdfReader(pdf_path)
+    pages_text = [page.extract_text() for page in pdf_reader.pages]
+    return pages_text
 
-# File Upload
-uploaded_file = st.file_uploader("Upload an Excel File (.xlsx)", type=["xlsx"])
+# Function to calculate similarity scores
+def calculate_similarity(reference, pages_text):
+    vectorizer = TfidfVectorizer()
+    all_text = [reference] + pages_text
+    tfidf_matrix = vectorizer.fit_transform(all_text)
+    similarity_scores = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+    return similarity_scores
 
-if uploaded_file:
-    # Load the Excel file and read all sheets
-    if "sheets_data" not in st.session_state:
-        st.session_state.sheets_data = pd.read_excel(uploaded_file, sheet_name=None, engine="openpyxl")
+# Main process
+def find_most_similar_pages(pdf_path, reference_text, top_n=2):
+    # Extract text from the PDF
+    pages_text = extract_text_from_pdf(pdf_path)
     
-    company_names = list(st.session_state.sheets_data.keys())
-
-    # Initialize session state for company status tracking
-    if "company_status" not in st.session_state:
-        st.session_state.company_status = {company: "" for company in company_names}
-
-    # Ensure the current index is tracked
-    if "current_index" not in st.session_state:
-        st.session_state.current_index = 0
-
-    # Get the current company
-    current_company = company_names[st.session_state.current_index]
-
-    # Sidebar for displaying company list and navigation
-    st.sidebar.title("Companies")
-    for company in company_names:
-        status = st.session_state.company_status[company]
-        # Display company name with status
-        status_icon = "✅" if status == "✔" else "❌" if status == "✘" else ""
-        st.sidebar.markdown(f"- {company} {status_icon}")
-        
-        # Add dynamic document links if company exists in doc_info
-        if company in doc_info:
-            links_html = ""
-            for doc in doc_info[company]:
-                date = format_date_str(doc['AsOfDate'])
-                page_links = ' | '.join([f'<a href="https://example.com/doc/{doc["DocId"]}/page/{p}">p. {p}</a>' for p in doc['pages_nb']])
-                links_html += f'&nbsp;&nbsp;&nbsp;• <a href="https://example.com/doc/{doc["DocId"]}">{date}</a> [{page_links}]<br>'
-            
-            if links_html:
-                st.sidebar.markdown(links_html, unsafe_allow_html=True)
-
-    # Main Title
-    st.title(f"Financial Data for {current_company}")
-
-    # Get data for the current company
-    data = st.session_state.sheets_data[current_company].copy()
+    # Calculate similarity scores
+    similarity_scores = calculate_similarity(reference_text, pages_text)
     
-    # Create a dictionary of column configurations
-    column_config = {col: st.column_config.NumberColumn(col, default=0.0) 
-                    for col in data.columns 
-                    if data[col].dtype in ['float64', 'int64']}
+    # Find the top N most similar pages
+    top_indices = similarity_scores.argsort()[-top_n:][::-1]
     
-    # Add text column configurations for non-numeric columns
-    for col in data.columns:
-        if col not in column_config:
-            column_config[col] = st.column_config.TextColumn(col, default="")
+    # Return the top N pages and their scores
+    return [(index, similarity_scores[index]) for index in top_indices]
 
-    # Display editable DataFrame with column configuration
-    edited_df = st.data_editor(
-        data,
-        use_container_width=True,
-        num_rows="dynamic",
-        column_config=column_config,
-        key=f"editor_{current_company}",
-        hide_index=True
-    )
+# Path to the PDF file
+pdf_path = "10Q1_2024.pdf"
 
-    # Store the edited data back in session state
-    st.session_state.sheets_data[current_company] = edited_df
+# Find the top 2 most similar pages
+top_pages = find_most_similar_pages(pdf_path, reference_text, top_n=2)
 
-    # Buttons for "Incorrect", "Validate", and "Export All Data" centered
-    col1, col2, col3 = st.columns([2, 2, 2])
-    with col1:
-        if st.button("❌ Incorrect", type="primary", key="incorrect_button"):
-            # Save the edited data
-            st.session_state.sheets_data[current_company] = edited_df
-            # Mark the current company as incorrect
-            st.session_state.company_status[current_company] = "✘"
-            # Move to the next company
-            st.session_state.current_index = (st.session_state.current_index + 1) % len(company_names)
-            st.experimental_rerun()
-    with col2:
-        if st.button("✅ Validate", key="validate_button"):
-            # Save the edited data
-            st.session_state.sheets_data[current_company] = edited_df
-            # Mark the current company as validated
-            st.session_state.company_status[current_company] = "✔"
-            # Move to the next company
-            st.session_state.current_index = (st.session_state.current_index + 1) % len(company_names)
-            st.experimental_rerun()
-    
-    with col3:
-        # Get only validated companies
-        validated_companies = [company for company in company_names 
-                             if st.session_state.company_status[company] == "✔"]
-        
-        if validated_companies:  # Only show export button if there are validated sheets
-            # Create Excel file in memory
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                for company in validated_companies:
-                    st.session_state.sheets_data[company].to_excel(writer, sheet_name=company, index=False)
-            
-            # Add download button for Excel file
-            st.download_button(
-                label="📥 Export All Data",
-                data=output.getvalue(),
-                file_name="validated_financial_data.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        else:
-            # Display disabled button or message when no data is validated
-            st.button("📥 Export All Data", disabled=True)
-
-    # Summary Table
-    st.markdown("---")
-    st.subheader("Summary of User Confirmation")
-    summary_data = pd.DataFrame({
-        "10Q": company_names,
-        "User Confirm": [st.session_state.company_status[company] for company in company_names]
-    })
-
-    # Apply custom formatting to add colors
-    def color_status(val):
-        if val == "✔":
-            return "color: green; font-weight: bold;"
-        elif val == "✘":
-            return "color: red; font-weight: bold;"
-        return ""
-
-    st.dataframe(
-        summary_data.style.applymap(color_status, subset=["User Confirm"]),
-        use_container_width=True,
-    )
-
-else:
-    st.info("Please upload an Excel file to start.")
+# Print the results
+for index, score in top_pages:
+    print(f"Page {index + 1} is similar with a score of {score:.4f}")
