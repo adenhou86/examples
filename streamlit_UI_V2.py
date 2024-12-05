@@ -1,8 +1,54 @@
+from langchain.vectorstores import BM25Vectorizer
+from langchain.docstore.document import Document
 import PyPDF2
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
-# Define the reference text for comparison
+# Step 1: Extract text from the PDF file
+def extract_text_from_pdf(pdf_path):
+    pdf_reader = PyPDF2.PdfReader(pdf_path)
+    pages_text = [page.extract_text() for page in pdf_reader.pages]
+    return pages_text
+
+# Step 2: Create LangChain documents for each page
+def create_documents(pages_text):
+    documents = [
+        Document(page_content=page, metadata={"page_number": idx + 1})
+        for idx, page in enumerate(pages_text)
+    ]
+    return documents
+
+# Step 3: Perform similarity search using BM25
+def bm25_search(reference_text, documents, top_n=2):
+    vectorizer = BM25Vectorizer(documents)
+    search_results = vectorizer.similarity_search_with_score(reference_text, k=top_n)
+    return search_results
+
+# Step 4: Generate output dictionary
+def generate_output(company_name, search_results):
+    result_dict = {
+        company_name: {
+            f"Page {doc.metadata['page_number']}": score
+            for doc, score in search_results
+        }
+    }
+    return result_dict
+
+# Main process
+def main(pdf_path, reference_text, company_name, top_n=2):
+    # Extract text from the PDF
+    pages_text = extract_text_from_pdf(pdf_path)
+    
+    # Create LangChain documents
+    documents = create_documents(pages_text)
+    
+    # Perform BM25 search
+    search_results = bm25_search(reference_text, documents, top_n)
+    
+    # Generate output dictionary
+    output_dict = generate_output(company_name, search_results)
+    
+    return output_dict
+
+# Define the reference text and company name
 reference_text = """
 Consolidated Statements of Cash Flows (Unaudited)
 
@@ -25,75 +71,12 @@ Net change in:
 - Accounts payable and other liabilities
 Other operating adjustments
 Net cash (used in) operating activities
-Investing Activities
-Net change in:
-- Federal funds sold and securities purchased under resale agreements
-Held-to-maturity securities:
-- Proceeds from paydowns and maturities
-- Purchases
-Available-for-sale securities:
-- Proceeds from paydowns and maturities
-- Proceeds from sales
-- Purchases
-Proceeds from sales and securitizations of loans held-for-investment
-Other changes in loans, net
-All other investing activities, net
-Net cash provided by/(used in) investing activities
-Financing Activities
-Net change in:
-- Deposits
-- Federal funds purchased and securities loaned or sold under repurchase agreements
-- Short-term borrowings
-- Beneficial interests issued by consolidated VIEs
-Proceeds from long-term borrowings
-Payments of long-term borrowings
-Proceeds from issuance of preferred stock
-Treasury stock repurchased
-Dividends paid
-All other financing activities, net
-Net cash provided by financing activities
-Effect of exchange rate changes on cash and due from banks and deposits with banks
-Net decrease in cash and due from banks and deposits with banks
-Cash and due from banks and deposits with banks at the beginning of the period
-Cash and due from banks and deposits with banks at the end of the period
-Cash interest paid
-Cash income taxes paid, net
 """
+company_name = "Example Company"
 
-# Function to extract text from a PDF file
-def extract_text_from_pdf(pdf_path):
-    pdf_reader = PyPDF2.PdfReader(pdf_path)
-    pages_text = [page.extract_text() for page in pdf_reader.pages]
-    return pages_text
-
-# Function to calculate similarity scores
-def calculate_similarity(reference, pages_text):
-    vectorizer = TfidfVectorizer()
-    all_text = [reference] + pages_text
-    tfidf_matrix = vectorizer.fit_transform(all_text)
-    similarity_scores = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
-    return similarity_scores
-
-# Main process
-def find_most_similar_pages(pdf_path, reference_text, top_n=2):
-    # Extract text from the PDF
-    pages_text = extract_text_from_pdf(pdf_path)
-    
-    # Calculate similarity scores
-    similarity_scores = calculate_similarity(reference_text, pages_text)
-    
-    # Find the top N most similar pages
-    top_indices = similarity_scores.argsort()[-top_n:][::-1]
-    
-    # Return the top N pages and their scores
-    return [(index, similarity_scores[index]) for index in top_indices]
-
-# Path to the PDF file
+# Path to your PDF file
 pdf_path = "10Q1_2024.pdf"
 
-# Find the top 2 most similar pages
-top_pages = find_most_similar_pages(pdf_path, reference_text, top_n=2)
-
-# Print the results
-for index, score in top_pages:
-    print(f"Page {index + 1} is similar with a score of {score:.4f}")
+# Run the main process and print the output
+output = main(pdf_path, reference_text, company_name, top_n=2)
+print(output)
