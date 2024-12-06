@@ -1,57 +1,122 @@
-from rank_bm25 import BM25Okapi
-from langchain.docstore.document import Document
-import PyPDF2
+Optimized Prompt:
 
-def extract_text_from_pdf(pdf_path):
-    pdf_reader = PyPDF2.PdfReader(pdf_path)
-    pages_text = [page.extract_text() for page in pdf_reader.pages]
-    return pages_text
+Instruction to the LLM:
 
-def create_documents(pages_text):
-    documents = [
-        Document(page_content=page, metadata={"page_number": idx + 1})
-        for idx, page in enumerate(pages_text)
-    ]
-    return documents
+You are a financial data analyst. Your task is to extract and populate a detailed JSON structure based on the provided SEC termsheet. Follow these instructions to ensure maximum accuracy and consistency:
 
-def bm25_search(reference_text, documents, top_n=2):
-    # Tokenize documents
-    tokenized_docs = [doc.page_content.lower().split() for doc in documents]
-    
-    # Create BM25 object
-    bm25 = BM25Okapi(tokenized_docs)
-    
-    # Tokenize query
-    tokenized_query = reference_text.lower().split()
-    
-    # Get document scores
-    doc_scores = bm25.get_scores(tokenized_query)
-    
-    # Get indices of top N scores
-    top_indices = sorted(range(len(doc_scores)), key=lambda i: doc_scores[i], reverse=True)[:top_n]
-    
-    # Create results list with documents and their scores
-    results = [(documents[idx], float(doc_scores[idx])) for idx in top_indices]
-    return results
+    Data Extraction:
+        Carefully read and analyze the SEC termsheet for all relevant information.
+        Extract key details and map them to the corresponding fields in the JSON structure below.
 
-def generate_output(company_name, search_results):
-    result_dict = {
-        company_name: {
-            "matches": [
-                {
-                    "page_number": doc.metadata['page_number'],
-                    "similarity_score": score,
-                    "content_preview": doc.page_content[:200] + "..."
-                }
-                for doc, score in search_results
-            ]
-        }
-    }
-    return result_dict
+    Formatting Rules:
+        Date Fields: Convert all dates into the format YYYY/MM/DD.
+        Currency and Numerical Values: Ensure all numerical values (e.g., notional, percentages) are formatted correctly and exclude any non-numeric characters (e.g., "$", "%").
+        Boolean Fields: Use true or false for fields requiring Boolean values.
+        Empty Fields: Leave blank any sections for which information is unavailable or irrelevant.
+        Enumerated Types: Use the predefined options (e.g., "callType" must be either "Auto" or "Issuer"; "basketType" must be one of "WorstOf", "BestOf", "Basket", "Mono", "Rainbow", or "Other").
+        Descriptive Terms: Use clear, concise terms based on the definitions provided in the SEC termsheet. For example:
+            A fixed payment above a threshold = "Digital Return."
+            A dual directional product = "Absolute Return."
+            A weighted basket determined at maturity = "Rainbow."
 
-def main(pdf_path, reference_text, company_name, top_n=2):
-    pages_text = extract_text_from_pdf(pdf_path)
-    documents = create_documents(pages_text)
-    search_results = bm25_search(reference_text, documents, top_n)
-    output_dict = generate_output(company_name, search_results)
-    return output_dict
+    Underlier List:
+        Populate the underlierList array with information for each underlying asset.
+        Include fields like underlierName, underlierWeight, underlierSource, underlierSymbol, and initialFixing for each underlier.
+
+    Key Definitions:
+        Call Type: Use "Auto" if the product is callable automatically. Use "Issuer" if the issuer initiates the call.
+        Basket Type: Define the type of basket (e.g., "WorstOf", "BestOf", "Rainbow") based on the composition and conditions described in the termsheet.
+        Digital Return: Identify if the product has a fixed payment above a barrier threshold.
+        Absolute Performance: Populate isDualDirectional as true if the product includes dual-directional/absolute return features.
+
+    JSON Structure:
+        Populate the following JSON structure with the extracted data. Ensure all fields are accurate, consistent, and adhere to the formatting rules above.
+
+{
+        "CUSIP": "",
+        "ISIN": "",
+        "productName": "",
+        "issuer": "",
+        "currency": "",
+        "notional": "",
+        "registrationType": "",
+        "tradeDate": "",
+        "strikeDate": "",
+        "issueDate": "",
+        "finalValuationDate": "",
+        "maturityDate": "",
+        "settlementType": "",
+        "basketType (WosrtOf, BestOf, Basket, Mono, Rainbow, Other)": "",
+        "underlierList": [{
+            "underlierName": "",
+            "underlierWeight": "",
+            "underlierSource": "",
+            "underlierSymbol": "",
+            "initialFixing": ""
+        }],
+        "productType": "",
+        "isDualDirectional": "",
+        "ancillaryFeatures": {
+            "isLookback": "",
+            "lookbackDateList": [],
+            "lookbackObservationFrequency (daily/weekly/monthly)": "",
+            "lookbackValuationType (min/max/average)": ""
+        },
+        "dateOffset": "",
+        "productYield": {
+            "paymentType": "",
+            "paymentEvaluationFrequency": "",
+            "paymentBarrierObservationFrequency": "",
+            "paymentObservationDateList": [],
+            "paymentSettlementDateList": [],
+            "paymentFrequency": "",
+            "paymentRatePerPeriod": "",
+            "paymentBarrierPercentage": "",
+            "paymentMemory": "",
+            "paymentRatePerAnnum": ""
+        },
+        "productCall": {
+            "callType (Auto/Issuer)": "",
+            "callObservationDateList": [],
+            "callSettlementDateList": [],
+            "callBarrierPercent": "",
+            "callPremiumPercent": "",
+            "callPremiumMemory": "",
+            "callObservationFrequency": "",
+            "numberOfCallPeriods": "",
+            "callPeriodObservationType": ""
+        },
+        "productProtection": {
+            "downsideType (barrier/buffer/full)": "",
+            "fullPrincipleProtection": "",
+            "putStrikePercent": "",
+            "principalBarrierLevel": "",
+            "principalBarrierLevelPercentage": "",
+            "putObservationFrequency": "",
+            "putObservationDateList": [],
+            "putLeverage": "",
+            "bufferPercentage": ""
+        },
+        "productGrowth": {
+            "upsideParticipationRate": "",
+            "callStrikeList": [{
+                "callStrikePercentage": ""
+            }],
+            "underlierReturnCapLevel": "",
+            "digitalReturn": "",
+            "digitalReturnBarrier": "",
+            "digitalReturnBarrierObservationDateList": [],
+            "uncappedAboveDigitalReturn": "",
+            "upsideParticipationAboveDigitalReturn": "",
+            "absoluteReturnBarrierLevel": "",
+            "maximumReturn": "",
+            "growthType": [],
+            "bearish": ""
+        },
+        "estimatedValue": ""
+}
+
+End Extraction.
+
+    Ensure the JSON is fully populated with the available data. For any missing or ambiguous details, leave the fields blank but ensure the structure is intact.
+    
