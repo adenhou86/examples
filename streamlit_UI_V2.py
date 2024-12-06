@@ -1,192 +1,87 @@
-Optimized Prompt:
-
-Instruction to the LLM:
-
-You are a financial data analyst. Your task is to extract and populate a detailed JSON structure based on the provided SEC termsheet. Follow these instructions to ensure maximum accuracy and consistency:
-
-    Data Extraction:
-        Carefully read and analyze the SEC termsheet for all relevant information.
-        Extract key details and map them to the corresponding fields in the JSON structure below.
-
-    Formatting Rules:
-        Date Fields: Convert all dates into the format YYYY/MM/DD.
-        Currency and Numerical Values: Ensure all numerical values (e.g., notional, percentages) are formatted correctly and exclude any non-numeric characters (e.g., "$", "%").
-        Boolean Fields: Use true or false for fields requiring Boolean values.
-        Empty Fields: Leave blank any sections for which information is unavailable or irrelevant.
-        Enumerated Types: Use the predefined options (e.g., "callType" must be either "Auto" or "Issuer"; "basketType" must be one of "WorstOf", "BestOf", "Basket", "Mono", "Rainbow", or "Other").
-        Descriptive Terms: Use clear, concise terms based on the definitions provided in the SEC termsheet. For example:
-            A fixed payment above a threshold = "Digital Return."
-            A dual directional product = "Absolute Return."
-            A weighted basket determined at maturity = "Rainbow."
-
-    Underlier List:
-        Populate the underlierList array with information for each underlying asset.
-        Include fields like underlierName, underlierWeight, underlierSource, underlierSymbol, and initialFixing for each underlier.
-
-    Key Definitions:
-        Call Type: Use "Auto" if the product is callable automatically. Use "Issuer" if the issuer initiates the call.
-        Basket Type: Define the type of basket (e.g., "WorstOf", "BestOf", "Rainbow") based on the composition and conditions described in the termsheet.
-        Digital Return: Identify if the product has a fixed payment above a barrier threshold.
-        Absolute Performance: Populate isDualDirectional as true if the product includes dual-directional/absolute return features.
-
-    JSON Structure:
-        Populate the following JSON structure with the extracted data. Ensure all fields are accurate, consistent, and adhere to the formatting rules above.
-
 {
-    // Unique identifier for the security
-    "CUSIP": "",
-    // International Securities Identification Number
-    "ISIN": "",
-    // Full legal name of the security from cover page
-    "productName": "",
-    // Legal entity name of the issuer
-    "issuer": "",
-    // Currency of the notional (e.g., "USD")
-    "currency": "",
-    // Principal amount without currency symbol
-    "notional": "",
-    // SEC registration numbers
-    "registrationType": "",
-    // Pricing date in YYYY/MM/DD format
-    "tradeDate": "",
-    // Initial fixing date in YYYY/MM/DD format
-    "strikeDate": "",
-    // Settlement date in YYYY/MM/DD format
-    "issueDate": "",
-    // Last valuation date in YYYY/MM/DD format
-    "finalValuationDate": "",
-    // Final payment date in YYYY/MM/DD format
-    "maturityDate": "",
-    // Type of settlement (Cash/Physical)
-    "settlementType": "",
-    // Basket performance type (WcrtOf for worst-of structure)
-    "basketType (WcrtOf, BestOf, Basket, Mono, Rainbow, Other)": "",
-    // List of underlying assets
-    "underlierList": [{
-        // Name of the underlying asset
-        "underlierName": "",
-        // Weight in the basket (if applicable)
-        "underlierWeight": "",
-        // Data source/index provider
-        "underlierSource": "",
-        // Trading symbol
-        "underlierSymbol": "",
-        // Initial fixing level
-        "initialFixing": ""
-    }],
-    // Main product category
-    "productType": "",
-    // Set to "true" for absolute performance features
-    "isDualDirectional": "",
-    // Lookback features if any
+    "CUSIP": "",  // Unique identifier for the security as assigned by the Committee on Uniform Securities Identification Procedures.
+    "ISIN": "",  // International Securities Identification Number, used to uniquely identify the security globally.
+    "productName": "",  // Name of the financial product (e.g., Callable Notes, Dual Directional Notes).
+    "issuer": "",  // The entity issuing the financial product (e.g., Morgan Stanley, Goldman Sachs).
+    "currency": "",  // Currency in which the product is denominated (e.g., USD, EUR).
+    "notional": "",  // Notional amount of the product, typically representing the face value or principal amount.
+    "registrationType": "",  // Type of registration (e.g., 144A, Reg S, or Public).
+    "tradeDate": "",  // The date when the trade was executed.
+    "strikeDate": "",  // The date when the initial fixing or strike price of the underliers was determined.
+    "issueDate": "",  // The date on which the product was issued to investors.
+    "finalValuationDate": "",  // The date when the final valuation of the product occurs.
+    "maturityDate": "",  // The date when the product matures and the principal is repaid.
+    "settlementType": "",  // Specifies the settlement method (e.g., physical delivery or cash settlement).
+    "basketType (WosrtOf, BestOf, Basket, Mono, Rainbow, Other)": "",  // Type of basket used (e.g., WorstOf: worst-performing underlier, Rainbow: weighted basket at maturity).
+    "underlierList": [
+        {
+            "underlierName": "",  // Name of the underlier (e.g., S&P 500 Index, Tesla Inc.).
+            "underlierWeight": "",  // Weight of the underlier in the basket (if applicable).
+            "underlierSource": "",  // Source of the underlier (e.g., Index, Stock, Commodity).
+            "underlierSymbol": "",  // Symbol or ticker of the underlier (e.g., SPX, TSLA).
+            "initialFixing": ""  // The initial value of the underlier at the strike date.
+        }
+    ],
+    "productType": "",  // The type of financial product (e.g., Structured Note, Equity-Linked Note).
+    "isDualDirectional": "",  // Indicates whether the product has a dual-directional feature (absolute performance).
     "ancillaryFeatures": {
-        "isLookback": "",
-        "lookbackDateList": [],
-        "lookbackObservationFrequency (daily/weekly/monthly)": "",
-        "lookbackValuationType (min/max/average)": ""
+        "isLookback": "",  // Indicates if the product includes a lookback feature.
+        "lookbackDateList": [],  // List of dates used for lookback observations.
+        "lookbackObservationFrequency (daily/weekly/monthly)": "",  // Frequency of lookback observations.
+        "lookbackValuationType (min/max/average)": ""  // Method of lookback valuation (e.g., minimum value, maximum value, or average).
     },
-    // Business day convention
-    "dateOffset": "",
-    // Coupon/yield related features
+    "dateOffset": "",  // The number of days or period offset for specific dates in the product's lifecycle.
     "productYield": {
-        // Type of coupon payment
-        "paymentType": "",
-        // Frequency of coupon evaluation
-        "paymentEvaluationFrequency": "",
-        // Frequency of barrier observation
-        "paymentBarrierObservationFrequency": "",
-        // List of coupon observation dates in YYYY/MM/DD
-        "paymentObservationDateList": [],
-        // List of coupon payment dates in YYYY/MM/DD
-        "paymentSettlementDateList": [],
-        // Coupon payment frequency
-        "paymentFrequency": "",
-        // Coupon rate per period
-        "paymentRatePerPeriod": "",
-        // Coupon barrier level in percentage
-        "paymentBarrierPercentage": "",
-        // Memory feature indicator
-        "paymentMemory": "",
-        // Annualized coupon rate
-        "paymentRatePerAnnum": ""
+        "paymentType": "",  // Type of payment (e.g., fixed, variable, digital return).
+        "paymentEvaluationFrequency": "",  // Frequency of payment evaluation (e.g., monthly, quarterly).
+        "paymentBarrierObservationFrequency": "",  // Frequency at which barriers are observed for payment.
+        "paymentObservationDateList": [],  // List of dates for payment observations.
+        "paymentSettlementDateList": [],  // List of dates for payment settlements.
+        "paymentFrequency": "",  // Frequency of payments (e.g., monthly, annual).
+        "paymentRatePerPeriod": "",  // Payment rate per period (e.g., 2.5% quarterly).
+        "paymentBarrierPercentage": "",  // Barrier percentage for payments.
+        "paymentMemory": "",  // Indicates if the product has a memory feature for missed payments.
+        "paymentRatePerAnnum": ""  // Payment rate on an annualized basis.
     },
-    // Autocall features
     "productCall": {
-        // Set to "Auto" for automatic calls
-        "callType (Auto/Issuer)": "",
-        // List of potential call dates in YYYY/MM/DD
-        "callObservationDateList": [],
-        // List of call payment dates in YYYY/MM/DD
-        "callSettlementDateList": [],
-        // Call trigger level in percentage
-        "callBarrierPercent": "",
-        // Call premium amount
-        "callPremiumPercent": "",
-        // Memory feature for call premium
-        "callPremiumMemory": "",
-        // Frequency of call observations
-        "callObservationFrequency": "",
-        // Total number of call periods
-        "numberOfCallPeriods": "",
-        // Type of observation for calls
-        "callPeriodObservationType": ""
+        "callType (Auto/Issuer)": "",  // Specifies whether the call is automatic (Auto) or initiated by the issuer (Issuer).
+        "callObservationDateList": [],  // List of dates for call observations.
+        "callSettlementDateList": [],  // List of settlement dates for calls.
+        "callBarrierPercent": "",  // Percentage barrier for calling the product.
+        "callPremiumPercent": "",  // Premium percentage paid upon call.
+        "callPremiumMemory": "",  // Indicates if the call has a premium memory feature.
+        "callObservationFrequency": "",  // Frequency of call observations (e.g., monthly, quarterly).
+        "numberOfCallPeriods": "",  // Number of periods for calls.
+        "callPeriodObservationType": ""  // Type of observation for the call period (e.g., periodic, continuous).
     },
-    // Capital protection features
     "productProtection": {
-        // Type of downside protection
-        "downsideType (barrier/buffer/full)": "",
-        // Full principal protection indicator
-        "fullPrincipleProtection": "",
-        // Put strike level
-        "putStrikePercent": "",
-        // Barrier level for principal protection
-        "principalBarrierLevel": "",
-        // Barrier level in percentage
-        "principalBarrierLevelPercentage": "",
-        // Frequency of put barrier observation
-        "putObservationFrequency": "",
-        // List of put observation dates
-        "putObservationDateList": [],
-        // Downside participation rate
-        "putLeverage": "",
-        // Buffer percentage if applicable
-        "bufferPercentage": ""
+        "downsideType (barrier/buffer/full)": "",  // Type of downside protection (e.g., full protection, barrier, or buffer).
+        "fullPrincipleProtection": "",  // Indicates if the product has full principal protection.
+        "putStrikePercent": "",  // Strike percentage for a put option (if applicable).
+        "principalBarrierLevel": "",  // Barrier level for principal protection.
+        "principalBarrierLevelPercentage": "",  // Barrier percentage for principal protection.
+        "putObservationFrequency": "",  // Frequency of put option observations.
+        "putObservationDateList": [],  // List of dates for put option observations.
+        "putLeverage": "",  // Leverage applied to put options.
+        "bufferPercentage": ""  // Buffer percentage for downside protection.
     },
-    // Upside participation features
     "productGrowth": {
-        // Participation rate in underlying performance
-        "upsideParticipationRate": "",
-        // List of call strike levels
-        "callStrikeList": [{
-            // Strike level in percentage
-            "callStrikePercentage": ""
-        }],
-        // Cap on underlying return
-        "underlierReturnCapLevel": "",
-        // Fixed return above barrier
-        "digitalReturn": "",
-        // Barrier for digital return
-        "digitalReturnBarrier": "",
-        // Observation dates for digital return
-        "digitalReturnBarrierObservationDateList": [],
-        // Uncapped return above digital level
-        "uncappedAboveDigitalReturn": "",
-        // Participation rate above digital level
-        "upsideParticipationAboveDigitalReturn": "",
-        // Barrier for absolute return
-        "absoluteReturnBarrierLevel": "",
-        // Maximum return possible
-        "maximumReturn": "",
-        // Type of growth feature
-        "growthType": [],
-        // Bearish product indicator
-        "bearish": ""
+        "upsideParticipationRate": "",  // Participation rate for upside returns.
+        "callStrikeList": [
+            {
+                "callStrikePercentage": ""  // List of strike percentages for calls.
+            }
+        ],
+        "underlierReturnCapLevel": "",  // Maximum return cap level for the underlier.
+        "digitalReturn": "",  // Indicates if the product provides a digital return.
+        "digitalReturnBarrier": "",  // Barrier level for digital return.
+        "digitalReturnBarrierObservationDateList": [],  // Observation dates for digital return barriers.
+        "uncappedAboveDigitalReturn": "",  // Indicates if returns above the digital level are uncapped.
+        "upsideParticipationAboveDigitalReturn": "",  // Participation rate above the digital return.
+        "absoluteReturnBarrierLevel": "",  // Barrier level for absolute return.
+        "maximumReturn": "",  // Maximum return level of the product.
+        "growthType": [],  // List of growth types (e.g., capped, uncapped).
+        "bearish": ""  // Indicates if the product has bearish exposure.
     },
-    // Estimated value per security
-    "estimatedValue": ""
+    "estimatedValue": ""  // The estimated value of the product.
 }
-
-End Extraction.
-
-    Ensure the JSON is fully populated with the available data. For any missing or ambiguous details, leave the fields blank but ensure the structure is intact.
-    
