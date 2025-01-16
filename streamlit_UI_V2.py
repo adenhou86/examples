@@ -41,3 +41,14 @@ Q3: 2,661
 Q4: 10,978
 
 "What is the amortized cost of 'Commercial mortgage-backed securities' under available-for-sale debt securities for the current or most recent period?"
+
+
+“Below is a table. Please provide me with the following details:
+
+The Amortized Cost (March 31, 2024) for Agency mortgage-backed securities.
+The Amortized Cost (March 31, 2024) for U.S. Treasury and government agencies.
+The Amortized Cost (March 31, 2024) for Agency-collateralized mortgage obligations.
+The Amortized Cost (March 31, 2024) for Commercial securities.
+Label the answers as Q1, Q2, Q3, and Q4 respectively.”
+
+
