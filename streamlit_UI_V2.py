@@ -71,10 +71,15 @@ Question_1: The amortized cost for Agency mortgage-backed securities under avail
 Question_2: The amortized cost for U.S. Treasury and government agencies under available-for-sale debt securities.
 Question_3: The amortized cost for Agency-collateralized mortgage obligations under available-for-sale debt securities.
 Question_4: The amortized cost for Commercial mortgage-backed securities under available-for-sale debt securities.
+Question_5: The amortized cost for Agency mortgage-backed securities under held-to-maturity debt securities.
+Question_6: The amortized cost for U.S. Treasury and government agencies under held-to-maturity debt securities.
 For the previous period:
 
 Question_1: The amortized cost for Agency mortgage-backed securities under available-for-sale debt securities.
 Question_2: The amortized cost for U.S. Treasury and government agencies under available-for-sale debt securities.
 Question_3: The amortized cost for Agency-collateralized mortgage obligations under available-for-sale debt securities.
 Question_4: The amortized cost for Commercial mortgage-backed securities under available-for-sale debt securities.
-Label the answers as Q1_Current, Q2_Current, Q3_Current, Q4_Current for the current quarter, and Q1_Previous, Q2_Previous, Q3_Previous, Q4_Previous for the previous period.”
+Question_5: The amortized cost for Agency mortgage-backed securities under held-to-maturity debt securities.
+Question_6: The amortized cost for U.S. Treasury and government agencies under held-to-maturity debt securities.
+Label the answers as Q1_Current, Q2_Current, Q3_Current, Q4_Current, Q5_Current, Q6_Current for the current quarter, and Q1_Previous, Q2_Previous, Q3_Previous, Q4_Previous, Q5_Previous, Q6_Previous for the previous period.”
+
