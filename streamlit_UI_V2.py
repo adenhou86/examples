@@ -51,4 +51,15 @@ The Amortized Cost (March 31, 2024) for Agency-collateralized mortgage obligatio
 The Amortized Cost (March 31, 2024) for Commercial securities.
 Label the answers as Q1, Q2, Q3, and Q4 respectively.”
 
+Prompt:
+
+“Below is a table. Please provide me with the following details for the current quarter or most recent period:
+
+Question_1: The amortized cost for Agency mortgage-backed securities under available-for-sale debt securities.
+Question_2: The amortized cost for U.S. Treasury and government agencies under available-for-sale debt securities.
+Question_3: The amortized cost for Agency-collateralized mortgage obligations under available-for-sale debt securities.
+Question_4: The amortized cost for Commercial mortgage-backed securities under available-for-sale debt securities.
+
+Label the answers as Q1, Q2, Q3, and Q4, respectively.”
+
 
