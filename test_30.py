@@ -43,14 +43,15 @@ string_list = [
     """
 ]
 
-# Initialize the dataframe storage
-data = []
+# Define column names dynamically based on the number of periods
 columns = ["Category"] + [f"Period_{i+1}" for i in range(len(string_list))]
+
+# Initialize storage for data
+structured_data = {}
 
 # Process each block and structure it
 for i, text in enumerate(string_list):
     current_category = None
-    period_data = {}
 
     for line in text.strip().split("\n"):
         line = line.strip()
@@ -63,26 +64,18 @@ for i, text in enumerate(string_list):
 
             if value == "":
                 current_category = key
-                period_data[current_category] = None
+                if current_category not in structured_data:
+                    structured_data[current_category] = [None] * len(string_list)
             else:
-                period_data[key] = float(value)
+                if key not in structured_data:
+                    structured_data[key] = [None] * len(string_list)
+                structured_data[key][i] = float(value)
 
-    # Merge the data into structured form
-    if i == 0:
-        data.append(["Proceeds from Sales", period_data.get("HTM", None), period_data.get("AFS", None)])
-        data.append(["Proceeds from Paydowns and Maturities", period_data.get("HTM", None), period_data.get("AFS", None)])
-        data.append(["Purchases", period_data.get("HTM", None), period_data.get("AFS", None)])
-    else:
-        data[0].append(period_data.get("HTM", None))
-        data[0].append(period_data.get("AFS", None))
-        data[1].append(period_data.get("HTM", None))
-        data[1].append(period_data.get("AFS", None))
-        data[2].append(period_data.get("HTM", None))
-        data[2].append(period_data.get("AFS", None))
-
-# Convert the structured data to a DataFrame
-df_final = pd.DataFrame(data, columns=columns)
+# Convert the structured data into a DataFrame
+df_fixed = pd.DataFrame.from_dict(structured_data, orient="index", columns=[f"Period_{i+1}" for i in range(len(string_list))])
+df_fixed.reset_index(inplace=True)
+df_fixed.rename(columns={"index": "Category"}, inplace=True)
 
 # Display the DataFrame
 import ace_tools as tools
-tools.display_dataframe_to_user(name="Consolidated Financial Data", dataframe=df_final)
+tools.display_dataframe_to_user(name="Fixed Financial Data Table", dataframe=df_fixed)
