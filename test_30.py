@@ -1,7 +1,6 @@
 import pandas as pd
-import re
 
-# Input data
+# List of string blocks
 string_list = [
     """
     Proceeds from Sales:
@@ -44,48 +43,34 @@ string_list = [
     """
 ]
 
-# Function to clean and extract values
-def extract_values(text):
-    # Remove dollar signs, commas, and parentheses, and convert to integers
-    text = re.sub(r'[,\$\(\)]', '', text)
-    return int(text) if text.strip() else None  # Return None for empty values
+data = []
 
-# Initialize a dictionary to store the data
-data = {
-    "category": [],
-    **{f"period_{i+1}": [] for i in range(len(string_list))}
-}
-
-# Extract all unique categories in order of appearance
-categories = []
-for text in string_list:
-    lines = text.strip().split('\n')
-    for line in lines:
-        if ':' in line:
-            category = line.split(':')[0].strip()
-            if category not in categories:
-                categories.append(category)
-
-# Extract data for each period
+# Process each block and structure it
 for i, text in enumerate(string_list):
-    lines = text.strip().split('\n')
-    for category in categories:
-        found = False
-        for line in lines:
-            if line.strip().startswith(category + ':'):
-                value = line.split(':')[-1].strip()
-                if i == 0:
-                    data["category"].append(category)
-                data[f"period_{i+1}"].append(extract_values(value))
-                found = True
-                break
-        if not found:
-            if i == 0:
-                data["category"].append(category)
-            data[f"period_{i+1}"].append(None)  # Append None for missing values
+    current_data = {
+        "Category": ["Proceeds from Sales:", "HTM", "AFS", "Proceeds from Paydowns and Maturities:", "HTM", "AFS", "Purchases:", "HTM", "AFS"]
+    }
+    period_key = f"Period_{i+1}"
+    values = []
 
-# Create DataFrame
-df = pd.DataFrame(data)
+    for line in text.strip().split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        if ":" in line:
+            key, value = line.split(":", 1)
+            key = key.strip()
+            value = value.strip().replace(",", "").replace("(", "-").replace(")", "").replace("$", "")
+            if value == "":
+                values.append(None)
+            else:
+                values.append(float(value))
+    
+    data.append(values)
 
-# Display the DataFrame
-print(df)
+df_dynamic = pd.DataFrame(data).T
+df_dynamic.columns = [f"period_{i+1}" for i in range(len(string_list))]
+df_dynamic.insert(0, "Category", ["Proceeds from Sales:", "HTM", "AFS", "Proceeds from Paydowns and Maturities:", "HTM", "AFS", "Purchases:", "HTM", "AFS"])
+
+import ace_tools as tools
+tools.display_dataframe_to_user(name="Corrected Output", dataframe=df_dynamic)
