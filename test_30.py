@@ -74,3 +74,19 @@ df_dynamic.insert(0, "Category", ["Proceeds from Sales:", "HTM", "AFS", "Proceed
 
 import ace_tools as tools
 tools.display_dataframe_to_user(name="Corrected Output", dataframe=df_dynamic)
+
+
+# Compute the differences between periods and insert new columns dynamically
+for i in range(1, len(string_list)):
+    df_corrected.insert(
+        i * 2, 
+        f"diff_period_{i}_{i+1}", 
+        df_corrected[f"period_{i+1}"].replace("", 0).astype(float) - df_corrected[f"period_{i}"].replace("", 0).astype(float)
+    )
+
+# Replace computed 0s for empty values where original columns were empty
+df_corrected = df_corrected.astype(str).replace("0.0", "")
+
+# Display the updated DataFrame
+tools.display_dataframe_to_user(name="Final DataFrame with Differences", dataframe=df_corrected)
+
