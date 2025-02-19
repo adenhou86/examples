@@ -90,3 +90,19 @@ df_corrected = df_corrected.astype(str).replace("0.0", "")
 # Display the updated DataFrame
 tools.display_dataframe_to_user(name="Final DataFrame with Differences", dataframe=df_corrected)
 
+
+# Compute the sum for each AFS row across all columns
+afs_sum = df_corrected[df_corrected["Category"] == "AFS"].drop(columns=["Category"]).replace("", 0).astype(float).sum()
+
+# Convert to string and replace 0 with empty string
+afs_sum = afs_sum.astype(str).replace("0.0", "")
+
+# Create a new row for AFS total
+afs_total_row = pd.DataFrame([["AFS Total"] + afs_sum.tolist()], columns=df_corrected.columns)
+
+# Append the new row to the dataframe
+df_corrected = pd.concat([df_corrected, afs_total_row], ignore_index=True)
+
+# Display the updated DataFrame with the AFS sum row
+tools.display_dataframe_to_user(name="Final DataFrame with AFS Sum", dataframe=df_corrected)
+
