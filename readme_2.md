@@ -166,6 +166,7 @@ Explanation:
 Prompt: (Same as above, with "What are the implications for FWA for cable companies?" as the user query)
 Inferred Metadata Output:
 
+```
 {
   "COMPANY_NAME": "",
   "DOCUMENT_TYPE": ["10-K", "10-Q"],
@@ -176,6 +177,7 @@ Inferred Metadata Output:
   "KEY_TOPICS": ["FWA", "implications"],
   "EVENT_TYPE": ""
 }
+```
 
 Explanation:
 
