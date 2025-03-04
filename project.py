@@ -1,51 +1,34 @@
-def parse_doc_answers(text):
-    """
-    Parse lines of the form:
-      DOC_ID = 12345 | ANSWER: [Some answer text]
-    into a list of dicts like:
-      [{"doc_id": "12345", "answer": "[Some answer text]"}, ...]
-    """
-    # Split text by lines
-    lines = text.strip().splitlines()
+import pandas as pd
+
+# Assuming the DataFrame is named df
+# Example DataFrame creation (replace this with your actual DataFrame)
+data = {
+    'doc_id': [41824151, 41824217, 41824298, 41824311, 41824363, 41824625, 41824633, 41824654, 41824656, 41824659],
+    'question': ['What is the client legal name?', 'What is the client legal name?', 'What is the client legal name?', 'What is the client legal name?', 'What is the client legal name?', 
+                  "Could you state 'Yes' or 'No' to indicate if t...", "Could you state 'Yes' or 'No' to indicate if t...", "Could you state 'Yes' or 'No' to indicate if t...", 
+                  "Could you state 'Yes' or 'No' to indicate if t...", "Could you state 'Yes' or 'No' to indicate if t..."],
+    'answer': ['NOT_FOUND', 'Eze Castle Software LLC', 'MELLON ALPHAEQUITY UK FUND, LTD.', 'NOT_FOUND', 'OVT Fund LP', 
+               'Yes, the client\'s affiliates are covered by th...', 'NOT_FOUND', 'Yes', 'No', 'NOT_FOUND'],
+    'topic': ['Client Legal Name', 'Client Legal Name', 'Client Legal Name', 'Client Legal Name', 'Client Legal Name', 
+              'Clients Affiliates Covered', 'Clients Affiliates Covered', 'Clients Affiliates Covered', 'Clients Affiliates Covered', 'Clients Affiliates Covered']
+}
+
+df = pd.DataFrame(data)
+
+# Create a Pandas Excel writer using XlsxWriter as the engine.
+writer = pd.ExcelWriter('output.xlsx', engine='openpyxl')
+
+# Group by the 'topic' column and write each group to a separate sheet
+for topic, group in df.groupby('topic'):
+    # Limit sheet name to the first 20 characters
+    sheet_name = topic[:20]
+    group.to_excel(writer, sheet_name=sheet_name, index=False)
     
-    results = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue  # skip any empty lines
-        
-        # Split at the '|' to separate DOC_ID part from ANSWER part
-        doc_part, ans_part = line.split('|')
-        
-        # Extract the actual doc_id
-        # doc_part should look like "DOC_ID = 41824151"
-        # So we split by '=' and take the second part
-        doc_id = doc_part.split('=')[1].strip()
-        
-        # Extract the answer
-        # ans_part should look like "ANSWER: [New York]"
-        # So we split by ':' and take the second part
-        answer = ans_part.split(':', 1)[1].strip()
-        
-        # Append to results
-        results.append({"doc_id": doc_id, "answer": answer})
-    
-    return results
+    # Access the worksheet to adjust column widths
+    worksheet = writer.sheets[sheet_name]
+    worksheet.column_dimensions['A'].width = 15  # doc_id
+    worksheet.column_dimensions['B'].width = 50  # question
+    worksheet.column_dimensions['C'].width = 20  # topic
 
-
-# Example usage:
-if __name__ == "__main__":
-    sample_text = """DOC_ID = 41824151 | ANSWER: [NOT_FOUND]
-DOC_ID = 41824217 | ANSWER: [New York]
-DOC_ID = 41824299 | ANSWER: [The NDA is governed by the laws of the State of California.]
-DOC_ID = 41824329 | ANSWER: [The NDA is governed by the laws of the State of New York.]"""
-
-    parsed = parse_doc_answers(sample_text)
-    print(parsed)
-    # Output:
-    # [
-    #   {'doc_id': '41824151', 'answer': '[NOT_FOUND]'},
-    #   {'doc_id': '41824217', 'answer': '[New York]'},
-    #   {'doc_id': '41824299', 'answer': '[The NDA is governed by the laws of the State of California.]'},
-    #   {'doc_id': '41824329', 'answer': '[The NDA is governed by the laws of the State of New York.]'}
-    # ]
+# Save the Excel file
+writer.save()
