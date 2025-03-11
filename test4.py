@@ -1,32 +1,11 @@
-import ast
-import re
+I've successfully run the GenAI pipeline to address the 8 questions/topics across the set of 535 NDA documents. This has produced the output file "output.xlsx," structured into four sheets as follows:
 
-def parse_string_to_dict(input_string):
-    # Extract the question
-    question_match = re.match(r"^(.*?)\?:\s*\[", input_string)
-    question = question_match.group(1) if question_match else "Unknown Question"
+535_NDA_Data: Contains LLM-generated answers for each of the 535 documents, covering responses to all 9 categories of questions.
 
-    # Extract the list content
-    list_content_match = re.search(r"\[(.*)\]", input_string, re.DOTALL)
-    if not list_content_match:
-        return {question: []}
+8_NDA_Data: Includes the LLM-generated answers specifically for the 8 NDA documents where we had the ground truth data you provided.
 
-    list_content = list_content_match.group(0)
+Performance_Summary: Provides the model's performance metrics on these 8 NDAs, achieving an accuracy rate of 97%. Performance is detailed per question type (topic).
 
-    # Convert the list-like string to a Python object
-    try:
-        parsed_list = ast.literal_eval(list_content)
-    except Exception as e:
-        print(f"Error parsing string: {e}")
-        return {question: []}
+Best_Model_Params: Lists the parameters of the best-performing model based on our evaluations.
 
-    return {question: parsed_list}
-
-# Example input (Replace with the actual extracted string)
-input_string = '''{'What is the client legal name?': [{'doc_id': '41824151', 'answer': '[NOT_FOUND]'}, {'doc_id': '41824217', 'answer': '[Eze Castle Software LLC]'}, ...]}'''
-
-# Parsing the string
-parsed_dict = parse_string_to_dict(input_string)
-
-# Output the parsed dictionary
-print(parsed_dict)
+Let me know if you need anything else or have questions regarding these results.
