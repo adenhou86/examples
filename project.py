@@ -1,30 +1,37 @@
+import agno
 
----
+def perform_web_search(query: str):
+    """
+    Uses the agno web tool to perform a search based on the provided query.
+    Returns a list of results with each result containing a title, URL, and snippet.
+    """
+    try:
+        # Call the web search tool; the expected payload is a dictionary with the 'query' key.
+        results = agno.web.search({"query": query})
+        return results
+    except Exception as e:
+        print(f"An error occurred while searching: {e}")
+        return []
 
-### **🚀 FINAL UPDATED RAG_PROMPT (Auto-Detect Concise vs. Detailed)**
-```python
-TEMPLATE_OPENAI: str = """
-CONTEXTS: {context}
+def main():
+    # Prompt the user to enter a search query
+    query = input("Enter your search query: ")
+    print(f"\nSearching for: {query}\n")
 
-QUESTION: {question}
+    # Perform the web search
+    results = perform_web_search(query)
+    
+    if results:
+        print("Search Results:")
+        for idx, result in enumerate(results, start=1):
+            print("-" * 40)
+            print(f"Result {idx}:")
+            print("Title: ", result.get("title", "No title available"))
+            print("URL: ", result.get("url", "No URL available"))
+            print("Snippet: ", result.get("snippet", "No snippet available"))
+            print("-" * 40)
+    else:
+        print("No search results found.")
 
-### **Instructions:**
-- Use only the provided context to answer the question. **Do not use external knowledge.**
-- **Ensure the response is always valid JSON.**
-- **Use double quotes (`"`) for all JSON keys and values.** Never use single quotes (`'`).
-- **Adjust the response length based on the question's intent:**
-  - If the question is **fact-based or numerical**, return a **short and direct answer**.
-  - If the question asks for **explanation, analysis, or breakdown**, provide a **detailed and structured response**.
-  - **For some questions, and if the user did not specify a preference for detail or conciseness, assess independently** whether a **concise or detailed** response is more appropriate based on the complexity of the question.
-  - If unsure, **default to a detailed response** to ensure completeness.
-- **Always include citations** from the context using the `"Citations"` field.
-
-### **Expected JSON Output Format:**
-```json
-{
-  "Answer": "Your answer here, matching the required level of detail.",
-  "Citations": [
-    {"page_no": "12", "excerpt": "Exact text excerpt from the document"},
-    {"page_no": "3", "excerpt": "Another relevant excerpt"}
-  ]
-}
+if __name__ == "__main__":
+    main()
