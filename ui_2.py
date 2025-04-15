@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from functools import lru_cache
+from rapidfuzz import fuzz
 
 # Set the page configuration
 st.set_page_config(
@@ -29,8 +31,10 @@ def load_company_data():
     }
     return pd.DataFrame(data)
 
-# Function to calculate similarity between two strings
-def calculate_similarity(str1, str2):
+# Use RapidFuzz for much faster string similarity calculation
+# Cache results to avoid recalculating for the same strings
+@lru_cache(maxsize=1024)
+def calculate_similarity_fast(str1, str2):
     # Convert both strings to lowercase for case-insensitive comparison
     a = str1.lower()
     b = str2.lower()
@@ -40,75 +44,92 @@ def calculate_similarity(str1, str2):
     
     # Check if one string contains the other
     if a in b or b in a:
-        return 0.8 + 0.2 * (min(len(a), len(b)) / max(len(a), len(b)))
+        return 0.9 + 0.1 * (min(len(a), len(b)) / max(len(a), len(b)))
     
-    # Basic Levenshtein distance calculation
-    matrix = np.zeros((len(a) + 1, len(b) + 1))
-    
-    # Initialize the matrix
-    for i in range(len(a) + 1):
-        matrix[i, 0] = i
-    for j in range(len(b) + 1):
-        matrix[0, j] = j
-    
-    # Fill the matrix
-    for i in range(1, len(a) + 1):
-        for j in range(1, len(b) + 1):
-            cost = 0 if a[i-1] == b[j-1] else 1
-            matrix[i, j] = min(
-                matrix[i-1, j] + 1,      # deletion
-                matrix[i, j-1] + 1,      # insertion
-                matrix[i-1, j-1] + cost  # substitution
-            )
-    
-    # Calculate similarity as 1 - normalized distance
-    max_length = max(len(a), len(b))
-    distance = matrix[len(a), len(b)]
-    return 1 - distance / max_length
+    # Use RapidFuzz for much faster similarity calculation
+    # Returns ratio between 0 and 100, so we divide by 100
+    return fuzz.ratio(a, b) / 100
 
 def main():
     # Page title
     st.title("Company Name Fuzzy Search")
     
+    # Add a note about installation requirements
+    st.caption("Note: This app requires the rapidfuzz library: `pip install rapidfuzz`")
+    
     # Load the company data
     companies_df = load_company_data()
     
-    # User input
-    query = st.text_input("Enter Company Name:", placeholder="e.g. Apple")
+    # Create columns for layout
+    col1, col2 = st.columns([3, 1])
     
-    # Search logic
-    if query and len(query.strip()) >= 2:
-        # Calculate similarity scores
-        companies_df['similarityScore'] = companies_df['companyName'].apply(
-            lambda name: calculate_similarity(query, name)
-        )
-        
-        # Sort by similarity score and take top 10
-        results_df = companies_df.sort_values(by='similarityScore', ascending=False).head(10)
-        
-        # Display results
-        if not results_df.empty:
-            st.subheader("Top 10 Similar Companies:")
+    # User input with callback
+    with col1:
+        query = st.text_input("Enter Company Name:", placeholder="e.g. Apple")
+    
+    with col2:
+        min_chars = st.number_input("Min. chars:", min_value=1, max_value=5, value=2)
+    
+    # Add processing status indicator
+    if query and len(query.strip()) >= min_chars:
+        with st.status("Processing...", expanded=False) as status:
+            # Vectorized calculation for better performance
+            # Pre-compute lowercase company names to avoid repeated conversions
+            lowercase_names = companies_df['companyName'].str.lower()
+            lowercase_query = query.lower()
             
-            # Format the similarity score as percentage
-            results_df['Similarity'] = results_df['similarityScore'].apply(
-                lambda score: f"{score * 100:.1f}%"
-            )
+            # First quick filter for exact substring matches
+            mask = lowercase_names.str.contains(lowercase_query)
+            quick_matches = companies_df[mask].copy()
             
-            # Display the results in a table
-            st.dataframe(
-                results_df[['companyTicker', 'companyName', 'Similarity']],
-                column_config={
-                    'companyTicker': 'Ticker',
-                    'companyName': 'Company Name',
-                    'Similarity': 'Similarity'
-                },
-                hide_index=True
-            )
-        else:
-            st.info("No matching companies found.")
+            # For remaining companies, calculate similarity scores
+            remaining = companies_df[~mask].copy()
+            
+            if not remaining.empty:
+                # Calculate scores using vectorized operations where possible
+                remaining['similarityScore'] = remaining['companyName'].apply(
+                    lambda name: calculate_similarity_fast(query, name)
+                )
+                
+                # Combine both result sets
+                if not quick_matches.empty:
+                    quick_matches['similarityScore'] = 0.95  # High score for substring matches
+                    combined_results = pd.concat([quick_matches, remaining])
+                else:
+                    combined_results = remaining
+                
+                # Sort by similarity score and take top 10
+                results_df = combined_results.sort_values(by='similarityScore', ascending=False).head(10)
+            else:
+                quick_matches['similarityScore'] = 0.95  # High score for substring matches
+                results_df = quick_matches.head(10)
+            
+            status.update(label="Processing complete!", state="complete")
+            
+            # Display results
+            if not results_df.empty:
+                st.subheader("Top 10 Similar Companies:")
+                
+                # Format the similarity score as percentage
+                results_df['Similarity'] = results_df['similarityScore'].apply(
+                    lambda score: f"{score * 100:.1f}%"
+                )
+                
+                # Display the results in a table
+                st.dataframe(
+                    results_df[['companyTicker', 'companyName', 'Similarity']],
+                    column_config={
+                        'companyTicker': 'Ticker',
+                        'companyName': 'Company Name',
+                        'Similarity': 'Similarity'
+                    },
+                    hide_index=True,
+                    use_container_width=True
+                )
+            else:
+                st.info("No matching companies found.")
     elif query:
-        st.info("Please enter at least 2 characters.")
+        st.info(f"Please enter at least {min_chars} characters.")
 
 if __name__ == "__main__":
     main()
