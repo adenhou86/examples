@@ -43,8 +43,29 @@ def calculate_similarity(str1, str2):
     
     if len(a) == 0 or len(b) == 0:
         return 0
+        
+    # Special case for location names with commas
+    # Compare "Brazil Indiana" with "Brazil, Indiana"
+    a_normalized = a.replace(",", " ").replace("  ", " ")
+    b_normalized = b.replace(",", " ").replace("  ", " ")
     
-    # Check if one string contains the other
+    # If normalized versions match exactly, give highest score
+    if a_normalized == b_normalized:
+        return 0.99
+        
+    # Check if one normalized string contains the other
+    if a_normalized in b_normalized or b_normalized in a_normalized:
+        return 0.9 + 0.1 * (min(len(a), len(b)) / max(len(a), len(b)))
+    
+    # Compare normalized versions of the strings for location matches
+    words_a = set(a_normalized.split())
+    words_b = set(b_normalized.split())
+    
+    # If all words in one string appear in the other string
+    if words_a.issubset(words_b) or words_b.issubset(words_a):
+        return 0.85 + 0.15 * (len(words_a.intersection(words_b)) / max(len(words_a), len(words_b)))
+    
+    # Check if one string contains the other (original strings)
     if a in b or b in a:
         return 0.8 + 0.2 * (min(len(a), len(b)) / max(len(a), len(b)))
     
@@ -95,17 +116,23 @@ def main():
             
             # Quick pre-filter to find potential matches to reduce the number of full calculations
             query_lower = query.lower()
+            query_normalized = query_lower.replace(",", " ").replace("  ", " ")
             
-            # 1. First find exact matches in lowercase
-            mask_exact = companies_df['lowercaseName'] == query_lower
+            # Normalize company names for better location matching
+            companies_df['normalizedName'] = companies_df['lowercaseName'].apply(
+                lambda name: name.replace(",", " ").replace("  ", " ")
+            )
+            
+            # 1. First find exact matches in lowercase (original or normalized)
+            mask_exact = (companies_df['lowercaseName'] == query_lower) | (companies_df['normalizedName'] == query_normalized)
             exact_matches = companies_df[mask_exact].copy()
             
             # 2. Then find companies that start with the query
-            mask_prefix = companies_df['lowercaseName'].str.startswith(query_lower)
+            mask_prefix = companies_df['lowercaseName'].str.startswith(query_lower) | companies_df['normalizedName'].str.startswith(query_normalized)
             prefix_matches = companies_df[mask_prefix & ~mask_exact].copy()
             
             # 3. Then find companies that contain the query
-            mask_contains = companies_df['lowercaseName'].str.contains(query_lower)
+            mask_contains = companies_df['lowercaseName'].str.contains(query_lower) | companies_df['normalizedName'].str.contains(query_normalized)
             contains_matches = companies_df[mask_contains & ~mask_prefix & ~mask_exact].copy()
             
             # 4. For the rest, calculate full similarity but limit to a reasonable number
