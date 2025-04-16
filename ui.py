@@ -125,30 +125,22 @@ if uploaded_file is not None:
                         image_data = base64.b64decode(results[0].base64)
                         image = Image.open(BytesIO(image_data))
                         
-                        # Prepare message for LLM with chat history context
-                        system_message = "You are an assistant answering questions about a PDF document. Use the provided image to answer the user's question."
-                        
-                        # Create messages array with context from chat history
-                        messages = [{"role": "system", "content": system_message}]
-                        
-                        # Add the last 3 exchanges for context if available
-                        for previous_chat in st.session_state.chat_history[-3:]:
-                            messages.append({"role": "user", "content": previous_chat["query"]})
-                            messages.append({"role": "assistant", "content": previous_chat["response"]})
-                        
-                        # Add current query with image
-                        messages.append({
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": text_query},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/png;base64,{results[0].base64}"
-                                    }
-                                },
-                            ],
-                        })
+                        # Prepare message for LLM - without chat history context
+                        # Only send the current query with the image
+                        messages = [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": text_query},
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/png;base64,{results[0].base64}"
+                                        }
+                                    },
+                                ],
+                            }
+                        ]
                         
                         # Get response from LLM
                         response = client.chat.completions.create(
