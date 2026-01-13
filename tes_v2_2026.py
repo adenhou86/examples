@@ -337,14 +337,14 @@ def get_multihop_rag_answer(query: str, llm, max_hops=3, docs_per_hop=3, chunk_w
 
             # Step 6: Generate next sub-question based on missing info (if not last hop)
             mi = (reasoning_step.get("missing_info") or "").strip().lower()
-            no_missing = any(x in mi for x in ["no missing information", "nothing missing", "none"])
+            no_missing = any(x in mi for x in ["no missing information", "no additional information", "no further information", "nothing missing", "nothing else", "none", "n/a", "not applicable", "fully answered", "complete"])
 
             if hop < max_hops - 1 and not no_missing:
                 current_query = _generate_next_subquestion_from_missing(
                     query, reasoning_step['missing_info'], llm, hop_num
                 )
                 print(f"\n➡️ Next sub-question generated from missing info")
-            elif hop < max_hops - 1 and no_missing::
+            elif hop < max_hops - 1 and no_missing:
                 print(f"\n✅ No missing info. Stopping early at hop {hop_num}.")
                 break
 
